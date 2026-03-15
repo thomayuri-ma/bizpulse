@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>BizPulse — Business Intelligence Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════════════════
+   BIZPULSE — PREMIUM DESIGN SYSTEM
+═══════════════════════════════════════════════════════ */
+:root {
+  --bg:       #f7f6f3;
+  --surface:  #ffffff;
+  --surface2: #f2f1ee;
+  --border:   #e8e6e0;
+  --border2:  #d4d1c9;
+  --ink:      #1a1916;
+  --ink2:     #4a4844;
+  --ink3:     #8a8780;
+  --ink4:     #b8b5ad;
+  --green:    #1a6b47;
+  --green-bg: #edf7f2;
+  --green-bd: #b8dece;
+  --red:      #b5251d;
+  --red-bg:   #fdf0ef;
+  --amber:    #8a4800;
+  --amber-bg: #fef3e2;
+  --blue:     #1a3d7c;
+  --blue-bg:  #edf2fb;
+  --shadow:   0 1px 3px rgba(0,0,0,.06), 0 2px 8px rgba(0,0,0,.04);
+  --shadow-md:0 4px 16px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.04);
+  --shadow-lg:0 8px 40px rgba(0,0,0,.10), 0 2px 8px rgba(0,0,0,.05);
+  --r: 12px; --r-sm: 8px; --r-xs: 5px;
+  --sidebar: 230px; --topbar: 56px;
+  --fd: 'Playfair Display', Georgia, serif;
+  --fb: 'Inter', -apple-system, sans-serif;
+  --fm: 'JetBrains Mono', monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+body { font-family: var(--fb); background: var(--bg); color: var(--ink); min-height: 100vh; overflow-x: hidden; }
+a { text-decoration: none; color: inherit; cursor: pointer; }
+button { cursor: pointer; font-family: var(--fb); }
+input, select { font-family: var(--fb); }
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+/* ── SIDEBAR ─────────────────────────────────────── */
+.sb {
+  position: fixed; left: 0; top: 0; bottom: 0;
+  width: var(--sidebar);
+  background: var(--ink);
+  display: flex; flex-direction: column;
+  z-index: 500;
+  transition: transform .3s cubic-bezier(.4,0,.2,1);
+}
+.sb-logo {
+  display: flex; align-items: center; gap: 10px;
+  padding: 22px 20px 18px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.sb-mark {
+  width: 32px; height: 32px; border-radius: 9px;
+  background: #fff; color: var(--ink);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--fd); font-weight: 700; font-size: 13px;
+  flex-shrink: 0;
+}
+.sb-name { font-family: var(--fd); font-size: 15px; font-weight: 600; color: #fff; }
+.sb-nav { flex: 1; padding: 14px 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.sb-link {
+  display: flex; align-items: center; gap: 11px;
+  padding: 9px 12px; border-radius: var(--r-sm);
+  font-size: 13px; font-weight: 500; color: rgba(255,255,255,.55);
+  cursor: pointer; transition: all .18s; user-select: none;
+  border: 1px solid transparent;
+}
+.sb-link:hover { background: rgba(255,255,255,.08); color: rgba(255,255,255,.9); }
+.sb-link.on { background: rgba(255,255,255,.12); color: #fff; border-color: rgba(255,255,255,.1); }
+.sb-link .ic { width: 18px; text-align: center; font-size: 13px; flex-shrink: 0; opacity: .7; }
+.sb-link.on .ic { opacity: 1; }
+.sb-sep { height: 1px; background: rgba(255,255,255,.06); margin: 8px 0; }
+.sb-foot {
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+.sb-live {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10px; font-weight: 600; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--green-bg);
+  margin-bottom: 5px;
+}
+.sb-dot { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; animation: blink 2s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+.sb-file { font-size: 11px; color: rgba(255,255,255,.35); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-close { display: none; background: none; border: none; color: rgba(255,255,255,.5); font-size: 18px; padding: 4px; }
+
+/* ── LAYOUT ──────────────────────────────────────── */
+.wrap { margin-left: var(--sidebar); display: flex; flex-direction: column; min-height: 100vh; }
+
+/* ── TOPBAR ──────────────────────────────────────── */
+.topbar {
+  height: var(--topbar);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 28px;
+  position: sticky; top: 0; z-index: 400;
+  box-shadow: 0 1px 0 var(--border);
+}
+.tb-left { display: flex; align-items: center; gap: 12px; }
+.ham { display: none; background: none; border: none; font-size: 20px; color: var(--ink2); padding: 4px; }
+.tb-title { font-family: var(--fd); font-size: 16px; font-weight: 600; color: var(--ink); }
+.tb-sep { color: var(--ink4); font-size: 12px; }
+.tb-clock { font-size: 12px; color: var(--ink3); font-family: var(--fm); }
+.tb-right { display: flex; align-items: center; gap: 8px; }
+.tb-pill {
+  display: none; padding: 4px 12px; border-radius: 100px;
+  font-size: 11px; font-weight: 500; font-family: var(--fm);
+  background: var(--green-bg); color: var(--green);
+  border: 1px solid var(--green-bd);
+  max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ── TICKER ──────────────────────────────────────── */
+.ticker {
+  height: 34px; background: var(--ink);
+  display: flex; align-items: center; overflow: hidden;
+  flex-shrink: 0;
+}
+.tick-badge {
+  padding: 0 14px; height: 100%;
+  background: var(--green); color: #fff;
+  font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+  display: flex; align-items: center; white-space: nowrap; flex-shrink: 0;
+}
+.tick-scroll { flex: 1; overflow: hidden; }
+.tick-track { display: inline-flex; animation: scroll 40s linear infinite; white-space: nowrap; }
+@keyframes scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+.tick-item {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 0 20px; font-size: 11px; font-family: var(--fm);
+  border-right: 1px solid rgba(255,255,255,.1);
+}
+.ts { color: rgba(255,255,255,.4); }
+.tv { color: rgba(255,255,255,.88); font-weight: 500; }
+.tup { color: #4ade80; } .tdn { color: #f87171; } .tneu { color: rgba(255,255,255,.4); }
+
+/* ── PAGES ───────────────────────────────────────── */
+.page { display: none; padding: 28px; animation: rise .22s ease; }
+.page.on { display: block; }
+@keyframes rise { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+.pg-hd {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 24px; gap: 16px; flex-wrap: wrap;
+}
+.pg-hd h1 { font-family: var(--fd); font-size: 26px; font-weight: 700; color: var(--ink); letter-spacing: -.02em; line-height: 1.2; }
+.pg-hd p { font-size: 12px; color: var(--ink3); margin-top: 4px; }
+.pg-hd-r { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex-shrink: 0; }
+.empty { padding: 52px 24px; text-align: center; color: var(--ink3); font-size: 13px; border: 2px dashed var(--border); border-radius: var(--r); background: var(--surface); }
+
+/* ── BUTTONS ─────────────────────────────────────── */
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: var(--r-sm); font-size: 13px; font-weight: 500; border: none; transition: all .18s; white-space: nowrap; }
+.btn-dark { background: var(--ink); color: #fff; }
+.btn-dark:hover { background: #000; }
+.btn-line { background: var(--surface); color: var(--ink2); border: 1px solid var(--border2); }
+.btn-line:hover { background: var(--surface2); }
+.btn-green { background: var(--green); color: #fff; }
+.btn-green:hover { background: #145c3c; }
+.btn-sm { padding: 6px 13px; font-size: 12px; }
+.btn-full { width: 100%; justify-content: center; }
+
+/* ── CARDS ───────────────────────────────────────── */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 22px;
+  box-shadow: var(--shadow);
+}
+.card-hd { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; gap: 12px; flex-wrap: wrap; }
+.card-title { font-family: var(--fd); font-size: 15px; font-weight: 600; color: var(--ink); }
+.card-sub { font-size: 12px; color: var(--ink3); margin-top: 2px; }
+
+/* ── IMPORT PAGE ─────────────────────────────────── */
+.drop {
+  border: 2px dashed var(--border2);
+  border-radius: 16px; padding: 60px 40px;
+  text-align: center; cursor: pointer;
+  transition: all .22s; background: var(--surface);
+  margin-bottom: 14px;
+}
+.drop:hover, .drop.drag {
+  border-color: var(--green); background: var(--green-bg);
+  box-shadow: 0 0 0 4px rgba(26,107,71,.06);
+}
+.drop input { display: none; }
+.drop-ico { font-size: 40px; color: var(--ink4); margin-bottom: 14px; line-height: 1; }
+.drop-h { font-family: var(--fd); font-size: 20px; font-weight: 600; color: var(--ink2); margin-bottom: 6px; }
+.drop-s { font-size: 12px; color: var(--ink3); margin-bottom: 18px; }
+.drop-link { color: var(--green); text-decoration: underline; cursor: pointer; }
+.chips { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+.chip { display: inline-block; padding: 4px 10px; border-radius: 100px; font-size: 11px; font-weight: 500; background: var(--surface2); color: var(--ink2); border: 1px solid var(--border); }
+.or-div { display: flex; align-items: center; gap: 12px; color: var(--ink3); font-size: 12px; margin: 12px 0; }
+.or-div::before, .or-div::after { content:''; flex:1; height:1px; background:var(--border); }
+
+/* ── UPLOAD RESULT ───────────────────────────────── */
+#uploadResult { margin-top: 20px; }
+.sum-stats { display: flex; gap: 28px; margin-bottom: 18px; flex-wrap: wrap; }
+.sum-stat .v { font-family: var(--fd); font-size: 24px; font-weight: 700; color: var(--ink); display: block; }
+.sum-stat .l { font-size: 11px; color: var(--ink3); letter-spacing: .03em; }
+.sheet-tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+.stab {
+  padding: 5px 14px; border-radius: 100px; font-size: 12px; font-weight: 500;
+  border: 1px solid var(--border2); color: var(--ink2); cursor: pointer;
+  transition: all .18s; background: var(--surface);
+}
+.stab.on, .stab:hover { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+/* ── KPI ROW ─────────────────────────────────────── */
+.kpi-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; margin-bottom: 22px; }
+.kpi {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 18px 20px;
+  box-shadow: var(--shadow);
+  animation: rise .3s ease both;
+}
+.kpi-l { font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink3); margin-bottom: 10px; }
+.kpi-v { font-family: var(--fd); font-size: 24px; font-weight: 700; color: var(--ink); letter-spacing: -.02em; line-height: 1; margin-bottom: 5px; }
+.kpi-s { font-size: 11px; color: var(--ink3); font-family: var(--fm); }
+.kpi-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 12px; overflow: hidden; }
+.kpi-bar-fill { height: 100%; border-radius: 2px; background: var(--green); transition: width 1s ease; }
+
+/* ── CHART GRID ──────────────────────────────────── */
+.chart-grid { display: grid; gap: 16px; margin-bottom: 16px; }
+.chart-grid-2 { grid-template-columns: 1fr 1fr; }
+.chart-grid-3 { grid-template-columns: 2fr 1fr; }
+.chart-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 20px; box-shadow: var(--shadow); }
+.chart-box h3 { font-family: var(--fd); font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 14px; }
+.chart-box canvas { max-height: 260px; }
+
+/* ── TABLE ───────────────────────────────────────── */
+.tbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tinput {
+  padding: 7px 13px; border: 1px solid var(--border2);
+  border-radius: var(--r-sm); font-size: 12px; outline: none;
+  background: var(--surface); min-width: 220px; color: var(--ink);
+  transition: border-color .18s;
+}
+.tinput:focus { border-color: var(--green); }
+.tscroll { overflow: auto; max-height: 62vh; border: 1px solid var(--border); border-radius: var(--r); margin-top: 14px; }
+.dt { width: 100%; border-collapse: collapse; font-size: 12px; background: var(--surface); }
+.dt thead th {
+  position: sticky; top: 0;
+  padding: 9px 14px; text-align: left;
+  font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--ink3); background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap; z-index: 10; cursor: pointer; user-select: none;
+}
+.dt thead th:hover { background: var(--border); color: var(--ink); }
+.dt td {
+  padding: 9px 14px; border-bottom: 1px solid rgba(0,0,0,.04);
+  color: var(--ink2); vertical-align: middle; white-space: nowrap; max-width: 220px;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.dt tr:hover td { background: var(--surface2); }
+.dt tr:last-child td { border-bottom: none; }
+.td-r { text-align: right; font-family: var(--fm); color: var(--ink); }
+.td-p { color: var(--green); font-weight: 600; }
+.td-n { color: var(--red); }
+.pager { display: flex; align-items: center; gap: 6px; padding: 12px 0; font-size: 12px; color: var(--ink3); flex-wrap: wrap; }
+.pag { padding: 4px 10px; border-radius: var(--r-xs); border: 1px solid var(--border2); background: var(--surface); font-size: 12px; color: var(--ink2); cursor: pointer; transition: all .15s; }
+.pag:hover { background: var(--surface2); }
+.pag.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+.pag:disabled { opacity: .35; cursor: not-allowed; }
+
+/* ── SHEET CARDS ─────────────────────────────────── */
+.sc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.sc {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 18px;
+  box-shadow: var(--shadow); transition: box-shadow .2s;
+}
+.sc:hover { box-shadow: var(--shadow-md); }
+.sc-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.sc-name { font-family: var(--fd); font-size: 14px; font-weight: 600; color: var(--ink); }
+.sc-mini { width: 100%; border-collapse: collapse; font-size: 11px; overflow: hidden; }
+.sc-mini th { padding: 4px 8px; background: var(--surface2); font-size: 9px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--ink3); border-bottom: 1px solid var(--border); text-align: left; }
+.sc-mini td { padding: 4px 8px; border-bottom: 1px solid rgba(0,0,0,.04); color: var(--ink2); overflow: hidden; max-width: 100px; white-space: nowrap; text-overflow: ellipsis; }
+.sc-btns { display: flex; gap: 6px; margin-top: 12px; }
+
+/* ── TAGS ────────────────────────────────────────── */
+.tag { display: inline-block; padding: 3px 9px; border-radius: var(--r-xs); font-size: 11px; font-weight: 500; background: var(--surface2); color: var(--ink2); border: 1px solid var(--border); }
+.tag-g { background: var(--green-bg); color: var(--green); border-color: var(--green-bd); }
+.tag-r { background: var(--red-bg); color: var(--red); border-color: #f0b8b3; }
+.tag-a { background: var(--amber-bg); color: var(--amber); border-color: #f6d897; }
+.tag-b { background: var(--blue-bg); color: var(--blue); border-color: #b8cce8; }
+
+/* ── APIs PAGE ───────────────────────────────────── */
+.api-search-card { margin-bottom: 22px; }
+.api-inp-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.api-inp {
+  flex: 1; padding: 10px 16px;
+  border: 1px solid var(--border2); border-radius: var(--r-sm);
+  font-size: 13px; outline: none; color: var(--ink);
+  transition: border-color .18s;
+}
+.api-inp:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(26,107,71,.06); }
+.ch-row { display: flex; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--surface2); font-size: 12px; }
+.ch-k { color: var(--ink3); min-width: 160px; flex-shrink: 0; font-weight: 500; }
+.ch-v { color: var(--ink); }
+.api-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 14px; }
+.api-c {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 18px;
+  box-shadow: var(--shadow); transition: box-shadow .2s;
+}
+.api-c:hover { box-shadow: var(--shadow-md); }
+.api-ico { font-size: 22px; margin-bottom: 10px; }
+.api-name { font-weight: 600; font-size: 13px; color: var(--ink); margin-bottom: 4px; }
+.api-desc { font-size: 12px; color: var(--ink3); line-height: 1.55; margin-bottom: 12px; }
+.api-ft { display: flex; justify-content: space-between; align-items: center; }
+.sdot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; vertical-align: middle; }
+.sg { background: var(--green); } .sa { background: var(--amber); } .sr { background: var(--red); }
+
+/* ── REPORTS ─────────────────────────────────────── */
+.rp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+.rp {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 24px;
+  box-shadow: var(--shadow); cursor: pointer; transition: all .22s;
+}
+.rp:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); border-color: var(--border2); }
+.rp-ico { font-size: 28px; margin-bottom: 14px; }
+.rp-name { font-family: var(--fd); font-size: 15px; font-weight: 600; color: var(--ink); margin-bottom: 5px; }
+.rp-desc { font-size: 12px; color: var(--ink3); line-height: 1.55; margin-bottom: 14px; }
+
+/* ── INTERACTIVE CHART BUILDER ───────────────────── */
+.cb-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+.sel {
+  padding: 7px 12px; border: 1px solid var(--border2); border-radius: var(--r-sm);
+  font-size: 12px; background: var(--surface); color: var(--ink); outline: none; cursor: pointer;
+}
+.sel:focus { border-color: var(--green); }
+.ct-btns { display: flex; gap: 5px; }
+.ct-btn {
+  padding: 6px 14px; border-radius: 100px; font-size: 12px; font-weight: 500;
+  border: 1px solid var(--border2); color: var(--ink2); background: var(--surface);
+  cursor: pointer; transition: all .18s;
+}
+.ct-btn.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+/* ══ FLOATING CHATBOT ════════════════════════════════ */
+.chat-btn {
+  position: fixed; bottom: 24px; right: 24px; z-index: 1000;
+  display: flex; align-items: center; gap: 9px;
+  padding: 11px 20px; border-radius: 100px;
+  background: var(--ink); color: #fff;
+  box-shadow: var(--shadow-lg); cursor: pointer;
+  transition: all .22s; user-select: none; border: none;
+  font-family: var(--fb); font-size: 13px; font-weight: 500;
+}
+.chat-btn:hover { background: #000; transform: translateY(-2px); }
+.chat-btn .star { font-size: 15px; color: #4ade80; }
+.chat-notif {
+  position: absolute; top: -5px; right: -5px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--red); color: #fff; font-size: 10px;
+  display: none; align-items: center; justify-content: center; font-weight: 700;
+}
+.chat-panel {
+  position: fixed; bottom: 78px; right: 24px; z-index: 999;
+  width: 390px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; box-shadow: var(--shadow-lg);
+  display: flex; flex-direction: column;
+  transform: translateY(16px); opacity: 0; pointer-events: none;
+  transition: all .25s cubic-bezier(.4,0,.2,1);
+  max-height: 580px;
+}
+.chat-panel.open { transform: translateY(0); opacity: 1; pointer-events: all; }
+.cp-hd {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.cp-title { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; color: var(--ink); }
+.cp-star { color: var(--green); font-size: 16px; }
+.cp-acts { display: flex; gap: 4px; }
+.cp-x {
+  background: none; border: none; font-size: 16px;
+  color: var(--ink3); padding: 4px 7px; border-radius: var(--r-xs);
+  cursor: pointer; transition: all .15s;
+}
+.cp-x:hover { background: var(--surface2); color: var(--ink); }
+.cp-ctx {
+  padding: 7px 16px; background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px; color: var(--ink3); font-family: var(--fm);
+  flex-shrink: 0;
+}
+.cp-msgs {
+  flex: 1; overflow-y: auto; padding: 14px 14px;
+  display: flex; flex-direction: column; gap: 10px;
+  min-height: 0;
+}
+.cmsg {
+  max-width: 87%; padding: 11px 14px;
+  border-radius: 11px; font-size: 13px; line-height: 1.6;
+  animation: rise .25s ease;
+}
+.cmsg-ai { background: var(--surface2); border: 1px solid var(--border); align-self: flex-start; color: var(--ink2); }
+.cmsg-user { background: var(--ink); color: #fff; align-self: flex-end; }
+.cmsg-lbl { font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--green); margin-bottom: 4px; }
+.typing { align-self: flex-start; background: var(--surface2); border: 1px solid var(--border); border-radius: 11px; padding: 12px 16px; display: flex; gap: 5px; }
+.typing span { width: 6px; height: 6px; border-radius: 50%; background: var(--ink4); animation: bounce 1s infinite; }
+.typing span:nth-child(2){animation-delay:.15s} .typing span:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}
+.cp-quick {
+  padding: 8px 14px; border-top: 1px solid var(--border);
+  display: flex; gap: 5px; flex-wrap: wrap; flex-shrink: 0;
+}
+.cq-btn {
+  padding: 4px 11px; border-radius: 100px; font-size: 11px;
+  border: 1px solid var(--border2); color: var(--ink2); background: var(--surface);
+  cursor: pointer; transition: all .18s;
+}
+.cq-btn:hover { background: var(--ink); color: #fff; border-color: var(--ink); }
+.cp-inp-row {
+  display: flex; gap: 6px; padding: 10px 12px;
+  border-top: 1px solid var(--border); flex-shrink: 0;
+}
+.cp-inp {
+  flex: 1; padding: 9px 13px; border: 1px solid var(--border2);
+  border-radius: var(--r-sm); font-size: 13px; outline: none;
+  color: var(--ink); transition: border-color .18s;
+}
+.cp-inp:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(26,107,71,.06); }
+.cp-send {
+  padding: 9px 16px; background: var(--ink); color: #fff;
+  border: none; border-radius: var(--r-sm); font-size: 14px; cursor: pointer; transition: all .18s;
+}
+.cp-send:hover { background: #000; }
+
+/* ── TOAST ───────────────────────────────────────── */
+.toast {
+  position: fixed; bottom: 90px; left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  padding: 10px 22px; background: var(--ink); color: #fff;
+  border-radius: var(--r); font-size: 13px; box-shadow: var(--shadow-lg);
+  opacity: 0; transition: all .3s; z-index: 9999; pointer-events: none; white-space: nowrap;
+}
+.toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── RESPONSIVE ─────────────────────────────────── */
+@media(max-width:960px) {
+  .sb { transform: translateX(-100%); } .sb.open { transform: translateX(0); }
+  .sb-close { display: block; }
+  .wrap { margin-left: 0; } .ham { display: block; }
+  .chart-grid-2, .chart-grid-3 { grid-template-columns: 1fr; }
+  .chat-panel { width: calc(100vw - 32px); right: 16px; }
+}
+@media(max-width:640px) {
+  .page { padding: 16px; } .topbar { padding: 0 16px; }
+  .kpi-row { grid-template-columns: 1fr 1fr; }
+  .tb-clock { display: none; }
+  .chat-btn span:not(.star) { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ SIDEBAR ══════════════════════════════════════ -->
+<nav class="sb" id="sb">
+  <div class="sb-logo">
+    <div class="sb-mark">BP</div>
+    <span class="sb-name">BizPulse</span>
+    <button class="sb-close" onclick="toggleSB()" style="margin-left:auto">✕</button>
+  </div>
+  <div class="sb-nav">
+    <a class="sb-link on" data-p="import"    onclick="go('import',this)"><span class="ic">↑</span>Import Data</a>
+    <a class="sb-link"    data-p="dashboard" onclick="go('dashboard',this)"><span class="ic">▦</span>Dashboard</a>
+    <a class="sb-link"    data-p="charts"    onclick="go('charts',this)"><span class="ic">◈</span>Charts</a>
+    <a class="sb-link"    data-p="table"     onclick="go('table',this)"><span class="ic">≡</span>Data Table</a>
+    <a class="sb-link"    data-p="sheets"    onclick="go('sheets',this)"><span class="ic">⊞</span>All Sheets</a>
+    <div class="sb-sep"></div>
+    <a class="sb-link"    data-p="apis"      onclick="go('apis',this)"><span class="ic">⊕</span>UK APIs</a>
+    <a class="sb-link"    data-p="reports"   onclick="go('reports',this)"><span class="ic">◫</span>Reports</a>
+  </div>
+  <div class="sb-foot">
+    <div class="sb-live"><span class="sb-dot"></span>Live</div>
+    <div class="sb-file" id="sbFile">No file loaded</div>
+  </div>
+</nav>
+
+<!-- ══ MAIN ═════════════════════════════════════════ -->
+<div class="wrap">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="tb-left">
+      <button class="ham" onclick="toggleSB()">☰</button>
+      <span class="tb-title" id="tbTitle">Import Data</span>
+      <span class="tb-sep">·</span>
+      <span class="tb-clock" id="tbClock"></span>
+    </div>
+    <div class="tb-right">
+      <span class="tb-pill" id="tbPill"></span>
+      <button class="btn btn-line btn-sm" onclick="exportCSV()">↓ Export</button>
+      <button class="btn btn-dark btn-sm" onclick="doRefresh()">↻ Refresh</button>
+    </div>
+  </header>
+
+  <!-- TICKER -->
+  <div class="ticker">
+    <div class="tick-badge">UK MARKET</div>
+    <div class="tick-scroll"><div class="tick-track" id="tickTrack"></div></div>
+  </div>
+
+  <!-- ── IMPORT ──────────────────────────────────── -->
+  <div class="page on" id="p-import">
+    <div class="pg-hd">
+      <div><h1>Import Any Company Data</h1><p>Drag &amp; drop an Excel or CSV file — dashboard builds automatically from your data</p></div>
+    </div>
+    <div class="drop" id="dropZone">
+      <input type="file" id="fileIn" accept=".csv,.xlsx,.xls" onchange="handleFile(event)"/>
+      <div class="drop-ico">↑</div>
+      <div class="drop-h">Drop your file here, or <span class="drop-link" onclick="document.getElementById('fileIn').click()">browse</span></div>
+      <div class="drop-s">Supports .xlsx · .xls · .csv · any company, any format</div>
+      <div class="chips">
+        <span class="chip">Bank Statements</span><span class="chip">Claims Data</span>
+        <span class="chip">P&amp;L Reports</span><span class="chip">Sales Data</span>
+        <span class="chip">Payroll</span><span class="chip">Any Spreadsheet</span>
+      </div>
+    </div>
+    <div class="or-div">or try the built-in example</div>
+    <button class="btn btn-line btn-full" onclick="loadExample()">📊  Load Gallagher Bassett Insurance Claims Example</button>
+    <div id="uploadResult"></div>
+  </div>
+
+  <!-- ── DASHBOARD ───────────────────────────────── -->
+  <div class="page" id="p-dashboard">
+    <div class="pg-hd">
+      <div><h1 id="dashH">Dashboard</h1><p id="dashSub">Upload a file to populate</p></div>
+      <div class="pg-hd-r" id="dashSSW"></div>
+    </div>
+    <div class="kpi-row" id="kpiRow"><div class="empty">Upload a file to see KPIs</div></div>
+    <div class="chart-grid chart-grid-3" id="mainCharts"></div>
+    <div class="chart-grid chart-grid-2" id="sub2Charts"></div>
+  </div>
+
+  <!-- ── CHARTS ──────────────────────────────────── -->
+  <div class="page" id="p-charts">
+    <div class="pg-hd">
+      <div><h1>Interactive Charts</h1><p>Select columns and chart type to visualise your data</p></div>
+    </div>
+    <div id="cbWrap"><div class="empty">Upload a file first</div></div>
+  </div>
+
+  <!-- ── TABLE ───────────────────────────────────── -->
+  <div class="page" id="p-table">
+    <div class="pg-hd">
+      <div><h1>Data Table</h1><p id="tableInfo">Sortable, searchable full dataset</p></div>
+      <div class="pg-hd-r tbar">
+        <input class="tinput" id="tSearch" placeholder="🔍  Search all columns…" oninput="filterTbl(this.value)"/>
+        <select class="sel" id="tColSel" onchange="filterTbl(document.getElementById('tSearch').value)">
+          <option value="">All columns</option>
+        </select>
+      </div>
+    </div>
+    <div class="tscroll" id="tWrap"><div class="empty">Upload a file to see data</div></div>
+    <div class="pager" id="tPager"></div>
+  </div>
+
+  <!-- ── SHEETS ──────────────────────────────────── -->
+  <div class="page" id="p-sheets">
+    <div class="pg-hd"><div><h1>All Sheets</h1><p id="sheetsInfo">Multi-sheet overview</p></div></div>
+    <div id="sheetsWrap"><div class="empty">Upload an Excel file to see all sheets</div></div>
+  </div>
+
+  <!-- ── APIS ────────────────────────────────────── -->
+  <div class="page" id="p-apis">
+    <div class="pg-hd"><div><h1>UK API Integrations</h1><p>Live connections to UK government &amp; financial services</p></div></div>
+    <div class="card api-search-card">
+      <div class="card-hd">
+        <div><div class="card-title">🏢 Companies House — Live Company Search</div><div class="card-sub">Search any UK registered company for directors, filings, SIC codes</div></div>
+        <span class="tag tag-g">LIVE API</span>
+      </div>
+      <div class="api-inp-row">
+        <input class="api-inp" id="chQ" placeholder="Company name or number e.g. Gallagher Bassett" onkeydown="if(event.key==='Enter')doSearch()"/>
+        <button class="btn btn-green" onclick="doSearch()">Search</button>
+      </div>
+      <div id="chOut"></div>
+    </div>
+    <h2 style="font-family:var(--fd);font-size:16px;font-weight:600;color:var(--ink);margin:0 0 14px">All UK Business APIs</h2>
+    <div class="api-grid" id="apiGrid"></div>
+  </div>
+
+  <!-- ── REPORTS ─────────────────────────────────── -->
+  <div class="page" id="p-reports">
+    <div class="pg-hd"><div><h1>Reports</h1><p>Generate and download reports from your loaded data</p></div></div>
+    <div class="rp-grid" id="rpGrid"></div>
+  </div>
+
+</div><!-- /wrap -->
+
+<!-- ══ CHATBOT ═══════════════════════════════════════ -->
+<button class="chat-btn" id="chatBtn" onclick="toggleChat()">
+  <span class="star">✦</span><span>AI Analyst</span>
+  <span class="chat-notif" id="chatNotif">1</span>
+</button>
+<div class="chat-panel" id="chatPanel">
+  <div class="cp-hd">
+    <div class="cp-title"><span class="cp-star">✦</span>AI Analyst</div>
+    <div class="cp-acts">
+      <button class="cp-x" onclick="clearChat()" title="Clear">⟳</button>
+      <button class="cp-x" onclick="toggleChat()">✕</button>
+    </div>
+  </div>
+  <div class="cp-ctx" id="cpCtx">No data loaded — upload a file first</div>
+  <div class="cp-msgs" id="cpMsgs">
+    <div class="cmsg cmsg-ai">
+      <div class="cmsg-lbl">✦ AI Analyst</div>
+      <p>Hi! Upload your data file and I'll answer questions about it — trends, anomalies, cost analysis, HMRC flags, or anything else.</p>
+    </div>
+  </div>
+  <div class="cp-quick">
+    <button class="cq-btn" onclick="ask('Summarise this dataset')">Summarise</button>
+    <button class="cq-btn" onclick="ask('What are the top trends?')">Trends</button>
+    <button class="cq-btn" onclick="ask('Flag any issues or anomalies')">Issues</button>
+    <button class="cq-btn" onclick="ask('Sales / pricing insights?')">Insights</button>
+  </div>
+  <div class="cp-inp-row">
+    <input class="cp-inp" id="cpInp" placeholder="Ask anything about your data…" onkeydown="if(event.key==='Enter')sendChat()"/>
+    <button class="cp-send" onclick="sendChat()">→</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- ══ ALL SCRIPTS ════════════════════════════════════ -->
+<script>
+/* ════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════ */
+const S = {
+  fileName:'', sheetNames:[], sheets:{}, active:null,
+  filtered:[], page:0, pageSize:50,
+  sort:{col:null,dir:'asc'},
+  chatOpen:false, chatHistory:[],
+};
+const TICKER=[
+  {s:'FTSE 100',v:'8,741',c:'+0.42%',u:true},{s:'GBP/EUR',v:'1.1892',c:'+0.12%',u:true},
+  {s:'GBP/USD',v:'1.2934',c:'−0.08%',u:false},{s:'BoE Rate',v:'4.75%',c:'Unchanged',u:null},
+  {s:'UK CPI',v:'2.8%',c:'Mar 2026',u:null},{s:'UK GDP',v:'+0.3%',c:'Q4 2025',u:true},
+  {s:'FTSE 250',v:'20,412',c:'+0.31%',u:true},{s:'Gold',v:'£1,694',c:'+0.6%',u:true},
+  {s:'Corp Tax',v:'25%',c:'Current Rate',u:null},{s:'VAT Threshold',v:'£85,000',c:'2024–25',u:null},
+];
+const APIS=[
+  {i:'🏢',n:'Companies House',d:'Company search, directors, SIC codes, filings',s:'g',t:'Legal',u:'https://developer.company-information.service.gov.uk/'},
+  {i:'🧾',n:'HMRC Making Tax Digital',d:'VAT returns, Corporation Tax, PAYE/RTI',s:'a',t:'Tax',u:'https://developer.service.hmrc.gov.uk/'},
+  {i:'🏦',n:'Open Banking (PSD2)',d:'Bank account transactions, balances, payments',s:'a',t:'Finance',u:'https://www.openbanking.org.uk/'},
+  {i:'📮',n:'Postcodes.io',d:'Free UK postcode lookup and address validation',s:'g',t:'Address',u:'https://postcodes.io/'},
+  {i:'📊',n:'ONS Statistics',d:'UK GDP, inflation, employment and trade data',s:'g',t:'Economic',u:'https://developer.ons.gov.uk/'},
+  {i:'🏛️',n:'Bank of England',d:'Interest rates, monetary policy, FX rates',s:'g',t:'Economic',u:'https://www.bankofengland.co.uk/boeapps/database/'},
+  {i:'🏠',n:'HM Land Registry',d:'Property prices, ownership and title data',s:'g',t:'Property',u:'https://use-land-property-data.service.gov.uk/'},
+  {i:'📜',n:'FCA Register',d:'Check any FCA-authorised financial services firm',s:'g',t:'Compliance',u:'https://register.fca.org.uk/'},
+];
+const REPORTS=[
+  {i:'📊',n:'Full Data Export',d:'Complete dataset as CSV'},
+  {i:'📈',n:'Numeric Summary',d:'Sum, avg, min, max for all numeric columns'},
+  {i:'📋',n:'Sheet Overview',d:'Row and column counts per sheet'},
+  {i:'🔍',n:'Data Quality',d:'Nulls, blanks and type analysis'},
+];
+const PALETTE=['#1a3d7c','#1a6b47','#b5251d','#8a4800','#5b21b6','#0e7490','#15803d','#92400e'];
+const P_ALPHA = PALETTE.map(c=>c+'30');
+
+/* ════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded',()=>{
+  clock(); setInterval(clock,1000);
+  buildTicker();
+  buildApiGrid();
+  buildReports();
+  setupDrop();
+});
+function clock(){
+  const e=document.getElementById('tbClock');
+  if(e) e.textContent=new Date().toLocaleString('en-GB',{weekday:'short',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+function buildTicker(){
+  const t=document.getElementById('tickTrack');
+  const items=[...TICKER,...TICKER].map(d=>{
+    const cls=d.u===true?'tup':d.u===false?'tdn':'tneu';
+    return`<span class="tick-item"><span class="ts">${d.s}</span><span class="tv">${d.v}</span><span class="${cls}">${d.c}</span></span>`;
+  }).join('');
+  t.innerHTML=items;
+}
+
+/* ════════════════════════════════════════════
+   NAV
+════════════════════════════════════════════ */
+const TITLES={import:'Import Data',dashboard:'Dashboard',charts:'Charts',table:'Data Table',sheets:'All Sheets',apis:'UK APIs',reports:'Reports'};
+function go(name,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.sb-link').forEach(l=>l.classList.remove('on'));
+  document.getElementById('p-'+name).classList.add('on');
+  if(el) el.classList.add('on');
+  document.getElementById('tbTitle').textContent=TITLES[name]||name;
+  if(window.innerWidth<960) document.getElementById('sb').classList.remove('open');
+  if(name==='dashboard'&&S.active) renderDash();
+  if(name==='charts'&&S.active) renderCB();
+  if(name==='table'&&S.active) renderTable();
+  if(name==='sheets'&&S.active) renderSheets();
+}
+function toggleSB(){ document.getElementById('sb').classList.toggle('open'); }
+
+/* ════════════════════════════════════════════
+   DRAG & DROP
+════════════════════════════════════════════ */
+function setupDrop(){
+  const z=document.getElementById('dropZone');
+  z.addEventListener('dragover',e=>{e.preventDefault();z.classList.add('drag');});
+  z.addEventListener('dragleave',()=>z.classList.remove('drag'));
+  z.addEventListener('drop',e=>{
+    e.preventDefault();z.classList.remove('drag');
+    const f=e.dataTransfer.files[0];if(f)processFile(f);
+  });
+  z.addEventListener('click',e=>{
+    if(e.target.classList.contains('drop-link'))return;
+    if(e.target.id==='dropZone'||e.target.closest('#dropZone'))
+      document.getElementById('fileIn').click();
+  });
+}
+function handleFile(e){const f=e.target.files[0];if(f)processFile(f);}
+function processFile(f){
+  const ext=f.name.split('.').pop().toLowerCase();
+  showToast('📊 Loading '+f.name+'…');
+  if(ext==='csv') parseCSV(f);
+  else if(ext==='xlsx'||ext==='xls') parseXLSX(f);
+  else showToast('⚠ Unsupported file type');
+}
+function parseCSV(f){
+  Papa.parse(f,{header:true,skipEmptyLines:true,dynamicTyping:true,complete:r=>{
+    S.fileName=f.name;S.sheetNames=['Sheet1'];
+    S.sheets={'Sheet1':clean(r.data)};S.active='Sheet1';
+    onLoad();
+  },error:e=>showToast('✕ '+e.message)});
+}
+function parseXLSX(f){
+  const rd=new FileReader();
+  rd.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
+      S.fileName=f.name;S.sheetNames=wb.SheetNames;S.sheets={};
+      wb.SheetNames.forEach(n=>{
+        const ws=wb.Sheets[n];
+        const str=XLSX.utils.sheet_to_json(ws,{defval:'',raw:false});
+        const num=XLSX.utils.sheet_to_json(ws,{defval:''});
+        S.sheets[n]=clean(str.map((row,i)=>{
+          const nr=num[i]||{};const m={};
+          Object.keys(row).forEach(k=>{m[k]=typeof nr[k]==='number'?nr[k]:row[k];});
+          return m;
+        }));
+      });
+      S.active=wb.SheetNames[0];onLoad();
+    }catch(err){showToast('✕ '+err.message);}
+  };
+  rd.readAsArrayBuffer(f);
+}
+function clean(rows){return(rows||[]).filter(r=>Object.values(r).some(v=>v!==''&&v!==null&&v!==undefined));}
+function onLoad(){
+  document.getElementById('sbFile').textContent=S.fileName;
+  const pill=document.getElementById('tbPill');
+  pill.textContent=S.fileName;pill.style.display='inline-flex';
+  updateCtx();showUploadSummary();showToast('✓ Loaded: '+S.fileName);
+}
+
+/* ════════════════════════════════════════════
+   UPLOAD SUMMARY
+════════════════════════════════════════════ */
+function showUploadSummary(){
+  const data=S.sheets[S.active]||[];
+  const cols=data.length?Object.keys(data[0]):[];
+  const nc=numCols(data);
+  const totalR=S.sheetNames.reduce((a,n)=>a+(S.sheets[n]?.length||0),0);
+  const tabs=S.sheetNames.length>1
+    ?`<div class="sheet-tabs">${S.sheetNames.map((n,i)=>`<button class="stab${i===0?' on':''}" onclick="switchSheet('${n}',this)">${n}</button>`).join('')}</div>`:'';
+  document.getElementById('uploadResult').innerHTML=`
+    <div class="card" style="margin-top:20px">
+      <div class="card-hd">
+        <div><div class="card-title">📄 ${S.fileName}</div></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-line btn-sm" onclick="clearData()">✕ Clear</button>
+          <button class="btn btn-dark btn-sm" onclick="go('dashboard',document.querySelector('[data-p=dashboard]'))">View Dashboard →</button>
+        </div>
+      </div>
+      <div class="sum-stats">
+        <div class="sum-stat"><span class="v">${S.sheetNames.length}</span><span class="l">Sheets</span></div>
+        <div class="sum-stat"><span class="v">${totalR.toLocaleString()}</span><span class="l">Total Rows</span></div>
+        <div class="sum-stat"><span class="v">${cols.length}</span><span class="l">Columns</span></div>
+        <div class="sum-stat"><span class="v">${nc.length}</span><span class="l">Numeric Cols</span></div>
+        <div class="sum-stat"><span class="v">${detectType(data)}</span><span class="l">Detected Type</span></div>
+      </div>
+      ${tabs}
+      <div id="prevWrap"></div>
+    </div>`;
+  renderPreview(S.active);
+}
+function switchSheet(n,el){
+  S.active=n;
+  document.querySelectorAll('.stab').forEach(t=>t.classList.remove('on'));
+  if(el)el.classList.add('on');
+  renderPreview(n);
+}
+function renderPreview(n){
+  const data=S.sheets[n];if(!data||!data.length)return;
+  const cols=Object.keys(data[0]).slice(0,10);
+  const rows=data.slice(0,8);
+  document.getElementById('prevWrap').innerHTML=`
+    <div class="tscroll" style="max-height:200px">
+      <table class="dt">
+        <thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}${Object.keys(data[0]).length>10?'<th>…</th>':''}</tr></thead>
+        <tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td>${fmt(r[c])}</td>`).join('')}${Object.keys(data[0]).length>10?'<td style="color:var(--ink4)">…</td>':''}</tr>`).join('')}</tbody>
+      </table>
+    </div>
+    ${data.length>8?`<p style="font-size:11px;color:var(--ink3);padding:6px 2px">Showing 8 of ${data.length} rows</p>`:''}`;
+}
+function clearData(){
+  Object.assign(S,{fileName:'',sheetNames:[],sheets:{},active:null,filtered:[],page:0});
+  document.getElementById('sbFile').textContent='No file loaded';
+  document.getElementById('tbPill').style.display='none';
+  document.getElementById('fileIn').value='';
+  document.getElementById('uploadResult').innerHTML='';
+  document.getElementById('cpCtx').textContent='No data loaded — upload a file first';
+  showToast('File cleared');
+}
+
+/* ════════════════════════════════════════════
+   GALLAGHER EXAMPLE
+════════════════════════════════════════════ */
+function loadExample(){
+  const months=['Apr-25','May-25','Jun-25','Jul-25','Aug-25','Sep-25','Oct-25','Nov-25','Dec-25','Jan-26','Feb-26','Mar-26'];
+  const regions=['London','South East','Midlands','North West','Scotland','Wales'];
+  const handlers=['T.Smith','A.Patel','M.Johnson','S.Williams'];
+  const rows=[];let id=1000;
+  months.forEach((mo,mi)=>{
+    const n=28+Math.floor(Math.random()*18);
+    for(let i=0;i<n;i++){
+      const type=['Property','Motor','Liability','Motor','Property'][i%5];
+      const sub=type==='Property'?['Residential','Commercial'][i%2]:type==='Motor'?['Private','Fleet','Commercial'][i%3]:['EL','PL'][i%2];
+      const mat=type==='Property'?2000+Math.round(Math.random()*9000):0;
+      const lab=type==='Property'?Math.round(mat*.75):0;
+      const rep=type==='Motor'?800+Math.round(Math.random()*4500):0;
+      const inj=Math.random()>.8?Math.round(Math.random()*14000):0;
+      const total=mat+lab+rep+inj+(400+Math.round(Math.random()*1800));
+      const settled=Math.random()>.28;
+      rows.push({
+        Claim_ID:'GB-'+(++id),Month:mo,Month_Num:mi+1,
+        Claim_Type:type,Sub_Type:sub,
+        Materials_Cost:mat,Labour_Cost:lab,Repair_Cost:rep,Injury_Cost:inj,
+        Total_Cost:total,Status:settled?'Settled':'Open',
+        Settlement_Days:settled?10+Math.round(Math.random()*45):null,
+        Region:regions[Math.floor(Math.random()*6)],
+        Handler:handlers[Math.floor(Math.random()*4)],
+        High_Value:total>10000?'Yes':'No',
+      });
+    }
+  });
+  S.fileName='GallagherBassett_Claims_FY2025-26.csv';
+  S.sheetNames=['Claims Data'];S.sheets={'Claims Data':rows};S.active='Claims Data';
+  onLoad();
+  showToast('✓ Gallagher Bassett example loaded — '+rows.length+' claims');
+}
+
+/* ════════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════════ */
+function fmt(v){
+  if(v===null||v===undefined||v==='')return'—';
+  if(typeof v==='number'){
+    if(Math.abs(v)>=1000000)return'£'+(v/1000000).toFixed(2)+'M';
+    if(Math.abs(v)>=1000)return v.toLocaleString('en-GB');
+    return v%1!==0?v.toFixed(2):String(v);
+  }
+  return String(v).slice(0,80);
+}
+function numCols(data){
+  if(!data||!data.length)return[];
+  return Object.keys(data[0]).filter(c=>{
+    const vs=data.slice(0,30).map(r=>r[c]).filter(v=>v!==''&&v!==null&&v!==undefined);
+    return vs.filter(v=>typeof v==='number'&&!isNaN(v)).length>vs.length*.5;
+  });
+}
+function labelCol(data){
+  if(!data||!data.length)return null;
+  const cols=Object.keys(data[0]);
+  const nc=numCols(data);
+  return cols.find(c=>/name|date|month|desc|category|type|period|label|product/i.test(c)&&!nc.includes(c))
+    ||cols.find(c=>!nc.includes(c))||cols[0];
+}
+function isCat(data,c){
+  const vs=[...new Set(data.slice(0,80).map(r=>r[c]).filter(v=>v!==''&&v!==null))];
+  return vs.length>=2&&vs.length<=20&&vs.some(v=>typeof v==='string');
+}
+function groupBy(data,gc,vc){
+  const r={};
+  data.forEach(row=>{const k=String(row[gc]||'?');r[k]=(r[k]||0)+(Number(row[vc])||0);});
+  return r;
+}
+function detectType(data){
+  if(!data||!data.length)return'General';
+  const c=Object.keys(data[0]).join(' ').toLowerCase();
+  if(/claim/.test(c))return'Claims';if(/invoice|amount/.test(c))return'Financial';
+  if(/sale|revenue/.test(c))return'Sales';if(/payroll|salary/.test(c))return'Payroll';
+  if(/customer|client/.test(c))return'CRM';return'General';
+}
+function bins(vals,n=10){
+  if(!vals.length)return{l:[],c:[]};
+  const mn=Math.min(...vals),mx=Math.max(...vals),sz=(mx-mn)/n||1;
+  const c=new Array(n).fill(0),l=[];
+  for(let i=0;i<n;i++){
+    const lo=mn+i*sz;l.push(fmt(lo)+'–'+fmt(lo+sz));
+    vals.forEach(v=>{if(v>=lo&&v<lo+sz)c[i]++;});
+  }
+  return{l,c};
+}
+
+/* ════════════════════════════════════════════
+   CHARTS
+════════════════════════════════════════════ */
+Chart.defaults.font.family="'Inter',sans-serif";Chart.defaults.font.size=11;
+Chart.defaults.plugins.legend.display=false;
+Chart.defaults.plugins.tooltip.backgroundColor='#1a1916';
+Chart.defaults.plugins.tooltip.padding=10;Chart.defaults.plugins.tooltip.cornerRadius=7;
+const CI={};
+function mkC(id,cfg){if(CI[id]){CI[id].destroy();delete CI[id];}const c=document.getElementById(id);if(!c)return;CI[id]=new Chart(c.getContext('2d'),cfg);return CI[id];}
+const AXES={x:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#8a8780',maxRotation:45,font:{size:9}}},y:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#8a8780',callback:v=>fmt(v)}}};
+function lineDS(label,data,i){return{label,data,borderColor:PALETTE[i%8],backgroundColor:PALETTE[i%8]+'18',fill:true,tension:.4,borderWidth:2,pointRadius:3,pointBackgroundColor:PALETTE[i%8],pointBorderColor:'#fff',pointBorderWidth:2};}
+function barDS(label,data,i){return{label,data,backgroundColor:PALETTE[i%8]+'30',borderColor:PALETTE[i%8],borderWidth:1.5,borderRadius:4};}
+
+function renderDash(){
+  const data=S.sheets[S.active];
+  if(!data||!data.length)return;
+  const nc=numCols(data);const lc=labelCol(data);
+  const cols=Object.keys(data[0]);
+  document.getElementById('dashH').textContent=S.fileName.replace(/\.[^.]+$/,'');
+  document.getElementById('dashSub').textContent=`${data.length} rows · ${cols.length} columns · ${S.active}`;
+  // Sheet switcher
+  const sw=document.getElementById('dashSSW');
+  sw.innerHTML=S.sheetNames.map(n=>`<button class="btn btn-sm ${n===S.active?'btn-dark':'btn-line'}" onclick="switchDash('${n}')">${n}</button>`).join('');
+  // KPIs
+  renderKPIs(data,nc);
+  // Charts
+  renderMainCharts(data,nc,lc);
+}
+function switchDash(n){S.active=n;renderDash();}
+function renderKPIs(data,nc){
+  const row=document.getElementById('kpiRow');
+  if(!nc.length){row.innerHTML='<div class="empty">No numeric columns found</div>';return;}
+  row.innerHTML=nc.slice(0,6).map((c,i)=>{
+    const vs=data.map(r=>Number(r[c])).filter(v=>!isNaN(v)&&v!==0);
+    const sum=vs.reduce((a,b)=>a+b,0);
+    const avg=vs.length?sum/vs.length:0;
+    const max=vs.length?Math.max(...vs):0;
+    const pct=max>0?Math.min(100,Math.round((avg/max)*100)):50;
+    const big=Math.abs(sum)>=500;
+    return`<div class="kpi" style="animation-delay:${i*.07}s">
+      <div class="kpi-l">${c.replace(/_/g,' ')}</div>
+      <div class="kpi-v">${big?fmt(sum):avg.toFixed(1)}</div>
+      <div class="kpi-s">${big?'Total':'Avg'} · ${vs.length} values</div>
+      <div class="kpi-bar"><div class="kpi-bar-fill" style="width:${pct}%;background:${PALETTE[i%8]}"></div></div>
+    </div>`;
+  }).join('');
+}
+function renderMainCharts(data,nc,lc){
+  const mc=document.getElementById('mainCharts');
+  const s2=document.getElementById('sub2Charts');
+  mc.innerHTML='';s2.innerHTML='';
+  if(!nc.length){mc.innerHTML='<div class="empty" style="grid-column:1/-1">No numeric columns to chart</div>';return;}
+  const labels=data.slice(0,50).map(r=>String(r[lc]||'').slice(0,18));
+  // ── Chart 1: bar (main)
+  mc.innerHTML+=`<div class="chart-box" style="grid-column:1/2"><h3>${nc[0].replace(/_/g,' ')} by ${lc}</h3><canvas id="dc1" height="240"></canvas></div>`;
+  // ── Chart 2: donut or line
+  const catC=Object.keys(data[0]).find(c=>!nc.includes(c)&&c!==lc&&isCat(data,c));
+  if(catC){
+    const grp=groupBy(data,catC,nc[0]);
+    mc.innerHTML+=`<div class="chart-box"><h3>${nc[0].replace(/_/g,' ')} by ${catC}</h3><canvas id="dc2" height="240"></canvas></div>`;
+  } else if(nc[1]){
+    mc.innerHTML+=`<div class="chart-box"><h3>${nc[1].replace(/_/g,' ')}</h3><canvas id="dc2" height="240"></canvas></div>`;
+  }
+  // ── Sub charts
+  if(nc.length>=2){
+    s2.innerHTML=`<div class="chart-box"><h3>All Numeric Columns — Trend</h3><canvas id="dc3" height="230"></canvas></div>`;
+    // Distribution
+    const vs=data.map(r=>Number(r[nc[0]])).filter(v=>!isNaN(v)&&v>0);
+    const b=bins(vs);
+    s2.innerHTML+=`<div class="chart-box"><h3>${nc[0].replace(/_/g,' ')} — Distribution</h3><canvas id="dc4" height="230"></canvas></div>`;
+  }
+  setTimeout(()=>{
+    mkC('dc1',{type:'bar',data:{labels,datasets:[barDS(nc[0],data.slice(0,50).map(r=>Number(r[nc[0]])||0),0)]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.parsed.y)}`}}},scales:AXES}});
+    if(catC){
+      const grp=groupBy(data,catC,nc[0]);const gk=Object.keys(grp);
+      mkC('dc2',{type:'doughnut',data:{labels:gk,datasets:[{data:Object.values(grp),backgroundColor:PALETTE.slice(0,gk.length),borderWidth:0,hoverOffset:6}]},options:{responsive:true,cutout:'65%',plugins:{legend:{display:true,position:'right',labels:{font:{size:10},boxWidth:10}},tooltip:{callbacks:{label:c=>` ${c.label}: ${fmt(c.parsed)}`}}}}});
+    } else if(nc[1]){
+      mkC('dc2',{type:'line',data:{labels,datasets:[lineDS(nc[1],data.slice(0,50).map(r=>Number(r[nc[1]])||0),1)]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${fmt(c.parsed.y)}`}}},scales:AXES}});
+    }
+    if(nc.length>=2){
+      mkC('dc3',{type:'line',data:{labels,datasets:nc.slice(0,5).map((c,i)=>lineDS(c.replace(/_/g,' '),data.slice(0,50).map(r=>Number(r[c])||0),i))},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:true,labels:{font:{size:10},boxWidth:10}},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.parsed.y)}`}}},scales:AXES}});
+      const vs2=data.map(r=>Number(r[nc[0]])).filter(v=>!isNaN(v)&&v>0);
+      const b2=bins(vs2);
+      mkC('dc4',{type:'bar',data:{labels:b2.l,datasets:[barDS(nc[0],b2.c,1)]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:AXES}});
+    }
+  },80);
+}
+
+/* ── CHART BUILDER ───────────────────────────────── */
+function renderCB(){
+  const data=S.sheets[S.active];
+  if(!data||!data.length){document.getElementById('cbWrap').innerHTML='<div class="empty">Upload a file first</div>';return;}
+  const cols=Object.keys(data[0]);const nc=numCols(data);const lc=labelCol(data);
+  document.getElementById('cbWrap').innerHTML=`
+    <div class="cb-row">
+      <span style="font-size:12px;color:var(--ink3);font-weight:500">X Axis:</span>
+      <select class="sel" id="cbX" onchange="reBuildChart()">${cols.map(c=>`<option value="${c}" ${c===lc?'selected':''}>${c}</option>`).join('')}</select>
+      <span style="font-size:12px;color:var(--ink3);font-weight:500">Y Axis:</span>
+      <select class="sel" id="cbY" onchange="reBuildChart()">${nc.map(c=>`<option value="${c}">${c}</option>`).join('')}</select>
+      <span style="font-size:12px;color:var(--ink3);font-weight:500">Type:</span>
+      <div class="ct-btns">
+        <button class="ct-btn on" data-ct="bar" onclick="setCT(this)">Bar</button>
+        <button class="ct-btn" data-ct="line" onclick="setCT(this)">Line</button>
+        <button class="ct-btn" data-ct="doughnut" onclick="setCT(this)">Donut</button>
+        <button class="ct-btn" data-ct="scatter" onclick="setCT(this)">Scatter</button>
+      </div>
+    </div>
+    <div class="chart-grid chart-grid-2">
+      <div class="chart-box" style="grid-column:1/-1"><h3 id="cbTitle">Chart</h3><canvas id="cbChart" height="300"></canvas></div>
+    </div>
+    <div class="chart-grid chart-grid-2" id="cbExtra"></div>`;
+  reBuildChart();buildExtraCharts(data,nc,lc);
+}
+let cbChartType='bar';
+function setCT(el){
+  document.querySelectorAll('.ct-btn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');cbChartType=el.dataset.ct;reBuildChart();
+}
+function reBuildChart(){
+  const data=S.sheets[S.active];if(!data)return;
+  const xc=document.getElementById('cbX')?.value;
+  const yc=document.getElementById('cbY')?.value;
+  const tp=cbChartType;
+  if(!xc||!yc)return;
+  const h=document.getElementById('cbTitle');if(h)h.textContent=`${yc.replace(/_/g,' ')} by ${xc}`;
+  const labels=data.slice(0,60).map(r=>String(r[xc]||'').slice(0,20));
+  const vals=data.slice(0,60).map(r=>Number(r[yc])||0);
+  let cfg;
+  if(tp==='scatter'){
+    cfg={type:'scatter',data:{datasets:[{data:labels.map((l,i)=>({x:Number(data[i][xc])||i,y:vals[i]})),backgroundColor:PALETTE[0]+'88',pointRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#8a8780'}},y:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#8a8780',callback:v=>fmt(v)}}}}};
+  } else if(tp==='doughnut'){
+    cfg={type:'doughnut',data:{labels,datasets:[{data:vals,backgroundColor:PALETTE.map(c=>c+'aa'),borderWidth:0,hoverOffset:6}]},options:{responsive:true,cutout:'65%',plugins:{legend:{display:true,position:'right',labels:{font:{size:10},boxWidth:10}}}}};
+  } else {
+    cfg={type:tp,data:{labels,datasets:[tp==='bar'?barDS(yc,vals,0):lineDS(yc,vals,0)]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${fmt(c.parsed?.y??c.parsed)}`}}},scales:AXES}};
+  }
+  mkC('cbChart',cfg);
+}
+function buildExtraCharts(data,nc,lc){
+  const ec=document.getElementById('cbExtra');if(!ec)return;
+  ec.innerHTML='';
+  const catC=Object.keys(data[0]).find(c=>!nc.includes(c)&&c!==lc&&isCat(data,c));
+  if(catC&&nc[0]){
+    const grp=groupBy(data,catC,nc[0]);
+    ec.innerHTML+=`<div class="chart-box"><h3>${nc[0].replace(/_/g,' ')} by ${catC}</h3><canvas id="ec1" height="220"></canvas></div>`;
+    setTimeout(()=>{mkC('ec1',{type:'bar',data:{labels:Object.keys(grp),datasets:[barDS(nc[0],Object.values(grp),2)]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:AXES}});},80);
+  }
+  if(nc[0]){
+    const vs=data.map(r=>Number(r[nc[0]])).filter(v=>!isNaN(v)&&v>0);
+    const b=bins(vs);
+    ec.innerHTML+=`<div class="chart-box"><h3>${nc[0].replace(/_/g,' ')} Distribution</h3><canvas id="ec2" height="220"></canvas></div>`;
+    setTimeout(()=>{mkC('ec2',{type:'bar',data:{labels:b.l,datasets:[barDS(nc[0],b.c,3)]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:AXES}});},100);
+  }
+}
+
+/* ════════════════════════════════════════════
+   TABLE
+════════════════════════════════════════════ */
+function renderTable(){
+  const data=S.sheets[S.active];
+  if(!data||!data.length){document.getElementById('tWrap').innerHTML='<div class="empty">No data</div>';return;}
+  const cols=Object.keys(data[0]);const nc=numCols(data);
+  const cf=document.getElementById('tColSel');
+  cf.innerHTML='<option value="">All columns</option>'+cols.map(c=>`<option value="${c}">${c}</option>`).join('');
+  document.getElementById('tableInfo').textContent=`${data.length.toLocaleString()} rows · ${cols.length} columns · ${S.active}`;
+  S.filtered=[...data];S.page=0;S.sort={col:null,dir:'asc'};
+  drawTable(cols,nc);
+}
+function filterTbl(q){
+  const data=S.sheets[S.active];if(!data)return;
+  const col=document.getElementById('tColSel')?.value;
+  const t=(q||'').toLowerCase();
+  S.filtered=t?data.filter(r=>col?String(r[col]??'').toLowerCase().includes(t):Object.values(r).some(v=>String(v??'').toLowerCase().includes(t))):[...data];
+  S.page=0;drawTable(Object.keys(data[0]),numCols(data));
+}
+function sortCol(c){
+  S.sort.dir=S.sort.col===c?(S.sort.dir==='asc'?'desc':'asc'):'asc';
+  S.sort.col=c;const d=S.sort.dir==='asc'?1:-1;
+  S.filtered.sort((a,b)=>{const av=a[c],bv=b[c];return(typeof av==='number'&&typeof bv==='number')?(av-bv)*d:String(av??'').localeCompare(String(bv??''))*d;});
+  S.page=0;drawTable(Object.keys(S.filtered[0]||S.sheets[S.active][0]),numCols(S.sheets[S.active]));
+}
+function drawTable(cols,nc){
+  const data=S.filtered;const ps=S.pageSize;const pg=S.page;
+  const pageData=data.slice(pg*ps,(pg+1)*ps);
+  const si=c=>S.sort.col===c?(S.sort.dir==='asc'?' ▲':' ▼'):'';
+  document.getElementById('tWrap').innerHTML=`
+    <table class="dt">
+      <thead><tr>${cols.map(c=>`<th onclick="sortCol('${c}')">${c}${si(c)}</th>`).join('')}</tr></thead>
+      <tbody>${pageData.length?pageData.map(r=>`<tr>${cols.map(c=>{const v=r[c];const isn=nc.includes(c);return`<td class="${isn?'td-r':''} ${isn&&Number(v)<0?'td-n':''}">${fmt(v)}</td>`;}).join('')}</tr>`).join(''):`<tr><td colspan="999" style="text-align:center;padding:32px;color:var(--ink3)">No results found</td></tr>`}</tbody>
+    </table>`;
+  const pages=Math.ceil(data.length/ps);
+  const pager=document.getElementById('tPager');
+  if(pages<=1){pager.innerHTML=`<span>${data.length.toLocaleString()} rows</span>`;return;}
+  let h=`<span>${(pg*ps+1).toLocaleString()}–${Math.min((pg+1)*ps,data.length).toLocaleString()} of ${data.length.toLocaleString()}</span>`;
+  h+=`<button class="pag" onclick="goPg(0)" ${!pg?'disabled':''}>«</button><button class="pag" onclick="goPg(${pg-1})" ${!pg?'disabled':''}>‹</button>`;
+  const s=Math.max(0,pg-2),e=Math.min(pages-1,pg+2);
+  for(let i=s;i<=e;i++)h+=`<button class="pag${i===pg?' on':''}" onclick="goPg(${i})">${i+1}</button>`;
+  h+=`<button class="pag" onclick="goPg(${pg+1})" ${pg>=pages-1?'disabled':''}>›</button><button class="pag" onclick="goPg(${pages-1})" ${pg>=pages-1?'disabled':''}>»</button>`;
+  pager.innerHTML=h;
+}
+function goPg(pg){
+  const pages=Math.ceil(S.filtered.length/S.pageSize);
+  if(pg<0||pg>=pages)return;
+  S.page=pg;drawTable(Object.keys(S.sheets[S.active][0]),numCols(S.sheets[S.active]));
+  document.getElementById('tWrap').scrollTop=0;
+}
+
+/* ════════════════════════════════════════════
+   ALL SHEETS
+════════════════════════════════════════════ */
+function renderSheets(){
+  document.getElementById('sheetsInfo').textContent=`${S.sheetNames.length} sheet${S.sheetNames.length!==1?'s':''} in ${S.fileName}`;
+  document.getElementById('sheetsWrap').innerHTML=`<div class="sc-grid">${S.sheetNames.map(n=>{
+    const data=S.sheets[n]||[];const cols=data.length?Object.keys(data[0]):[];const nc=numCols(data);
+    return`<div class="sc">
+      <div class="sc-hd"><span class="sc-name">📄 ${n}</span><span class="tag">${data.length} rows · ${cols.length} cols</span></div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">${nc.slice(0,4).map(c=>`<span class="tag tag-g" style="font-size:10px">£ ${c}</span>`).join('')}</div>
+      <div style="overflow:hidden;border-radius:6px;border:1px solid var(--border)">
+        <table class="sc-mini"><thead><tr>${cols.slice(0,5).map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+        <tbody>${data.slice(0,5).map(r=>`<tr>${cols.slice(0,5).map(c=>`<td>${fmt(r[c])}</td>`).join('')}</tr>`).join('')}</tbody></table>
+      </div>
+      <div class="sc-btns">
+        <button class="btn btn-line btn-sm" onclick="S.active='${n}';go('dashboard',document.querySelector('[data-p=dashboard]'))">Dashboard</button>
+        <button class="btn btn-line btn-sm" onclick="S.active='${n}';go('table',document.querySelector('[data-p=table]'))">Full Table</button>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+/* ════════════════════════════════════════════
+   APIS
+════════════════════════════════════════════ */
+async function doSearch(){
+  const q=document.getElementById('chQ').value.trim();if(!q)return;
+  const out=document.getElementById('chOut');
+  out.innerHTML=`<p style="padding:10px 0;font-size:12px;color:var(--ink3)">🔍 Searching Companies House for "${q}"…</p>`;
+  try{
+    const r=await fetch(`https://api.company-information.service.gov.uk/search/companies?q=${encodeURIComponent(q)}&items_per_page=1`);
+    if(!r.ok)throw new Error('cors');
+    const j=await r.json();
+    if(!j.items?.length){out.innerHTML=`<p style="padding:8px 0;font-size:12px;color:var(--ink3)">No results found for "${q}"</p>`;return;}
+    const c=j.items[0];
+    out.innerHTML=chCard(c.title,[['Company Number',c.company_number],['Type',fmtStr(c.company_type)],['Status',`<span style="color:${c.company_status==='active'?'var(--green)':'var(--red)'}">${fmtStr(c.company_status)}</span>`],['Incorporated',c.date_of_creation||'—'],['Address',[c.address?.address_line_1,c.address?.locality,c.address?.postal_code].filter(Boolean).join(', ')||'—'],['SIC Codes',(c.sic_codes||[]).join(', ')||'—']],c.company_number,false);
+  }catch{out.innerHTML=chCard(q.toUpperCase()+' LTD',[['Company Number','OC'+Math.floor(100000+Math.random()*900000)],['Type','Private Limited Company'],['Status','<span style="color:var(--green)">Active</span>'],['Incorporated','14 March 2018'],['Address','12 Business Park, London, EC2A 4NE'],['SIC Code','62020 — IT Consultancy Activities']],null,true);}
+}
+function chCard(name,fields,num,demo){
+  return`<div style="margin-top:10px;padding:16px;background:var(--surface2);border-radius:var(--r-sm);border:1px solid var(--border)">
+    <div style="font-family:var(--fd);font-size:15px;font-weight:700;color:var(--ink);margin-bottom:10px">${name}</div>
+    ${fields.map(([k,v])=>`<div class="ch-row"><span class="ch-k">${k}</span><span class="ch-v">${v||'—'}</span></div>`).join('')}
+    ${num?`<div style="margin-top:10px"><a href="https://find-and-update.company-information.service.gov.uk/company/${num}" target="_blank" class="btn btn-line btn-sm">View on Companies House ↗</a></div>`:''}
+    ${demo?`<div style="margin-top:10px;padding:8px 11px;background:var(--amber-bg);border:1px solid #f6d897;border-radius:6px;font-size:11px;color:var(--amber)">ℹ Demo result — live search requires server proxy for CORS. <a href="https://find-and-update.company-information.service.gov.uk/" target="_blank" style="color:var(--amber);text-decoration:underline">Search directly ↗</a></div>`:''}
+  </div>`;
+}
+function fmtStr(s){return s?s.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()):'—';}
+function buildApiGrid(){
+  document.getElementById('apiGrid').innerHTML=APIS.map(a=>`
+    <div class="api-c">
+      <div class="api-ico">${a.i}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div class="api-name">${a.n}</div><span class="tag" style="font-size:10px">${a.t}</span>
+      </div>
+      <div class="api-desc">${a.d}</div>
+      <div class="api-ft">
+        <span style="font-size:11px;color:var(--ink3)"><span class="sdot s${a.s}"></span>${a.s==='g'?'Available':a.s==='a'?'Auth Required':'Unavailable'}</span>
+        <a href="${a.u}" target="_blank" class="btn btn-line btn-sm">Docs ↗</a>
+      </div>
+    </div>`).join('');
+}
+
+/* ════════════════════════════════════════════
+   REPORTS
+════════════════════════════════════════════ */
+function buildReports(){
+  document.getElementById('rpGrid').innerHTML=REPORTS.map(r=>`
+    <div class="rp" onclick="runReport('${r.n}')">
+      <div class="rp-ico">${r.i}</div>
+      <div class="rp-name">${r.n}</div>
+      <div class="rp-desc">${r.d}</div>
+      <span class="tag">CSV Download</span>
+    </div>`).join('');
+}
+function runReport(name){
+  if(!S.active){showToast('Upload a file first');return;}
+  const data=S.sheets[S.active];const nc=numCols(data);const cols=Object.keys(data[0]);
+  let rows;
+  if(name==='Full Data Export'){rows=data;}
+  else if(name==='Numeric Summary'){rows=nc.map(c=>{const vs=data.map(r=>Number(r[c])).filter(v=>!isNaN(v)&&v!==0);return{Column:c,Count:vs.length,Sum:vs.reduce((a,b)=>a+b,0).toFixed(2),Avg:(vs.reduce((a,b)=>a+b,0)/vs.length||0).toFixed(2),Min:Math.min(...vs).toFixed(2),Max:Math.max(...vs).toFixed(2)};});}
+  else if(name==='Sheet Overview'){rows=S.sheetNames.map(n=>{const d=S.sheets[n];return{Sheet:n,Rows:d.length,Columns:d.length?Object.keys(d[0]).length:0,NumericCols:numCols(d).length};});}
+  else{rows=cols.map(c=>{const vs=data.map(r=>r[c]);const empty=vs.filter(v=>v===''||v===null||v===undefined).length;return{Column:c,TotalRows:data.length,EmptyValues:empty,EmptyPct:((empty/data.length)*100).toFixed(1)+'%',UniqueValues:new Set(vs).size,Type:nc.includes(c)?'Numeric':'Text'};});}
+  const keys=Object.keys(rows[0]);
+  const csv=[keys.join(','),...rows.map(r=>keys.map(k=>JSON.stringify(r[k]??'')).join(','))].join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download=S.fileName.replace(/\.[^.]+$/,'')+'-'+name.replace(/\s+/g,'-')+'.csv';
+  a.click();URL.revokeObjectURL(a.href);
+  showToast('↓ '+name+' downloaded');
+}
+function exportCSV(){
+  if(!S.active){showToast('Upload a file first');return;}
+  runReport('Full Data Export');
+}
+function doRefresh(){
+  if(!S.active){showToast('Upload a file first');return;}
+  renderDash();showToast('↻ Refreshed');
+}
+
+/* ════════════════════════════════════════════
+   AI CHATBOT
+════════════════════════════════════════════ */
+function toggleChat(){
+  S.chatOpen=!S.chatOpen;
+  document.getElementById('chatPanel').classList.toggle('open',S.chatOpen);
+  document.getElementById('chatNotif').style.display='none';
+  if(S.chatOpen)setTimeout(()=>document.getElementById('cpInp').focus(),200);
+}
+function clearChat(){
+  S.chatHistory=[];
+  document.getElementById('cpMsgs').innerHTML=`<div class="cmsg cmsg-ai"><div class="cmsg-lbl">✦ AI Analyst</div><p>Chat cleared. Upload data and ask me anything!</p></div>`;
+}
+function updateCtx(){
+  const data=S.sheets[S.active]||[];
+  const nc=numCols(data);
+  document.getElementById('cpCtx').textContent=`✓ ${S.fileName} · ${data.length} rows · ${nc.length} numeric columns`;
+  document.getElementById('chatNotif').style.display=S.chatOpen?'none':'flex';
+}
+function buildCtxStr(){
+  if(!S.active)return'No data loaded.';
+  const data=S.sheets[S.active]||[];if(!data.length)return'Empty sheet.';
+  const cols=Object.keys(data[0]);const nc=numCols(data);
+  const stats=nc.slice(0,8).map(c=>{
+    const vs=data.map(r=>Number(r[c])).filter(v=>!isNaN(v)&&v!==0);
+    return`${c}: sum=${vs.reduce((a,b)=>a+b,0).toFixed(0)}, avg=${vs.length?(vs.reduce((a,b)=>a+b,0)/vs.length).toFixed(1):'n/a'}, min=${vs.length?Math.min(...vs).toFixed(0):'n/a'}, max=${vs.length?Math.max(...vs).toFixed(0):'n/a'}`;
+  }).join('\n');
+  const cats=cols.filter(c=>!nc.includes(c)).slice(0,4).map(c=>{
+    const vs=[...new Set(data.map(r=>r[c]).filter(v=>v!==''))];
+    return`${c}: ${vs.slice(0,8).join(', ')}`;
+  }).join('\n');
+  const sample=data.slice(0,4).map(r=>Object.entries(r).slice(0,7).map(([k,v])=>`${k}:${v}`).join(', ')).join('\n');
+  return`File: ${S.fileName}\nSheet: ${S.active}\nRows: ${data.length}\nColumns: ${cols.join(', ')}\nNumeric cols: ${nc.join(', ')}\n\nSTATS:\n${stats}\n\nCATEGORIES:\n${cats}\n\nSAMPLE ROWS:\n${sample}`;
+}
+async function sendChat(){
+  const inp=document.getElementById('cpInp');
+  const msg=inp.value.trim();if(!msg)return;
+  inp.value='';await ask(msg);
+}
+async function ask(msg){
+  addBubble('user',msg);
+  S.chatHistory.push({role:'user',content:msg});
+  const ty=addTyping();
+  const sys=`You are an expert UK business data analyst in BizPulse dashboard.\n\nCurrent data:\n${buildCtxStr()}\n\nGuidelines:\n- Answer questions about this specific uploaded data\n- Identify trends, costs, anomalies\n- Reference UK rules (HMRC, VAT, Corp Tax) when relevant\n- Use £ for GBP, be concise (3–4 sentences or a short bullet list)\n- Format numbers clearly`;
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,system:sys,messages:S.chatHistory.slice(-8)})});
+    ty.remove();
+    if(!r.ok)throw new Error();
+    const d=await r.json();
+    const reply=d.content?.[0]?.text||'No response.';
+    S.chatHistory.push({role:'assistant',content:reply});
+    addBubble('bot',reply);
+  }catch{
+    ty.remove();
+    const fb=offlineReply(msg);
+    S.chatHistory.push({role:'assistant',content:fb});
+    addBubble('bot',fb);
+  }
+}
+function offlineReply(msg){
+  const m=msg.toLowerCase();
+  if(!S.active)return"Please upload a file first — drag & drop on the Import page.";
+  const data=S.sheets[S.active]||[];
+  const nc=numCols(data);const cols=data.length?Object.keys(data[0]):[];
+  if(/summar|overview|what/.test(m)){
+    const stats=nc.slice(0,3).map(c=>{const vs=data.map(r=>Number(r[c])).filter(v=>!isNaN(v)&&v>0);return`• **${c}**: total ${fmt(vs.reduce((a,b)=>a+b,0))}, avg ${fmt(vs.reduce((a,b)=>a+b,0)/vs.length||0)}`;}).join('\n');
+    return`**${S.fileName}** — ${data.length.toLocaleString()} rows, ${cols.length} columns.\n\n${stats}\n\n*Connect a Claude API key for deeper AI analysis.*`;
+  }
+  if(/trend|pattern/.test(m))return`Your data has ${data.length} rows across ${nc.length} numeric columns. Visualise trends in the **Charts** tab — select any column to see bar, line, donut, or scatter charts instantly.`;
+  if(/issue|anomal|flag|problem/.test(m)){const empty=nc.filter(c=>data.some(r=>r[c]===''||r[c]===null));return empty.length?`Found ${empty.length} column(s) with missing/empty values: **${empty.slice(0,3).join(', ')}**. Run the **Data Quality** report for a full breakdown.`:`No obvious missing values found in numeric columns. Use the **Data Quality** report for a complete audit.`;}
+  if(/total|sum/.test(m)&&nc[0]){const vs=data.map(r=>Number(r[nc[0]])).filter(v=>!isNaN(v)&&v>0);return`Total of **${nc[0]}**: **${fmt(vs.reduce((a,b)=>a+b,0))}** across ${vs.length} rows. Average: **${fmt(vs.reduce((a,b)=>a+b,0)/vs.length||0)}**.`;}
+  if(/column|field/.test(m))return`Your file has **${cols.length} columns**: ${cols.slice(0,6).join(', ')}${cols.length>6?'…':''}. Numeric: **${nc.join(', ')}**.`;
+  if(/how many|count|row/.test(m))return`**${data.length.toLocaleString()} rows** and **${cols.length} columns** loaded. ${nc.length} columns are numeric.`;
+  return`I can see **${data.length} rows** in "${S.active}". For full AI analysis, connect a Claude API key. Use **Charts** for visualisation, **Data Table** for detailed browsing.`;
+}
+function addBubble(type,text){
+  const w=document.getElementById('cpMsgs');
+  const d=document.createElement('div');
+  d.className=`cmsg cmsg-${type==='bot'?'ai':'user'}`;
+  d.innerHTML=type==='bot'?`<div class="cmsg-lbl">✦ AI Analyst</div>${mdToHtml(text)}`:text;
+  w.appendChild(d);w.scrollTop=w.scrollHeight;return d;
+}
+function addTyping(){
+  const w=document.getElementById('cpMsgs');
+  const d=document.createElement('div');d.className='typing';
+  d.innerHTML='<span></span><span></span><span></span>';
+  w.appendChild(d);w.scrollTop=w.scrollHeight;return d;
+}
+function mdToHtml(t){
+  return'<p>'+t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>').replace(/• /g,'• ')+'</p>';
+}
+
+/* ════════════════════════════════════════════
+   TOAST
+════════════════════════════════════════════ */
+function showToast(msg,ms=3000){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('on');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),ms);
+}
+</script>
+</body>
+</html>
